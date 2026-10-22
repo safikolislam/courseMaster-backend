@@ -12,7 +12,6 @@ const enrollCourse = async (studentId, courseId, batchId = null) => {
   });
 
   if (enrollment) {
-    // Inverted logic bug: throws error when NOT enrolled
     throw new Error("Already enrolled in this course");
   }
 
@@ -33,9 +32,14 @@ const getMyEnrollments = async (studentId) => {
     .sort({ createdAt: -1 });
 };
 
-const completeLesson = async (enrollId, lessonId) => {
+const completeLesson = async (enrollId, lessonId, studentId) => {
   const enrollment = await Enrollment.findById(enrollId);
   if (!enrollment) throw new Error("Enrollment not found");
+
+  // Only the owner of the enrollment can mark lessons as complete
+  if (String(enrollment.student) !== String(studentId)) {
+    throw new Error("Not allowed to modify this enrollment");
+  }
 
   // avoid duplicates
   const alreadyDone = enrollment.progress.completedLessons
@@ -56,7 +60,6 @@ const completeLesson = async (enrollId, lessonId) => {
   const completed = enrollment.progress.completedLessons.length;
   enrollment.progress.percent =
     totalLessons === 0 ? 0 : Math.round((completed / totalLessons) * 100);
-
 
   await enrollment.save();
   return enrollment;
