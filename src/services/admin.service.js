@@ -22,7 +22,7 @@ const deleteCourse = async (id) => {
   return { message: "Course deleted" };
 };
 
-// ✅ NEW: get enrollments (with optional filters)
+// get enrollments (with optional filters)
 const getEnrollments = async (query) => {
   const { courseId, batchId } = query;
 
@@ -36,10 +36,10 @@ const getEnrollments = async (query) => {
     .sort({ createdAt: -1 });
 };
 
-// ✅ NEW: get all assignment submissions (Code-8 bug: queries by courseId instead of course)
+// get all assignment submissions (optionally filtered by course)
 const getAssignments = async (query = {}) => {
   const filter = {};
-  if (query.courseId) filter.courseId = query.courseId; // Mongoose schema has 'course', not 'courseId'
+  if (query.courseId) filter.course = query.courseId;
 
   const submissions = await AssignmentSubmission.find(filter)
     .populate("student", "name email")
@@ -100,13 +100,13 @@ const getAnalytics = async () => {
   thirtyDaysAgo.setHours(0, 0, 0, 0);
 
   const enrollments = await Enrollment.find({
-    createdAt: { $gte: thirtyDaysAgo }
+    createdAt: { $gte: thirtyDaysAgo },
   }).sort({ createdAt: 1 });
 
   // Group by date
   const enrollmentData = {};
-  enrollments.forEach(enrollment => {
-    const date = enrollment.createdAt.toISOString().split('T')[0];
+  enrollments.forEach((enrollment) => {
+    const date = enrollment.createdAt.toISOString().split("T")[0];
     enrollmentData[date] = (enrollmentData[date] || 0) + 1;
   });
 
@@ -116,7 +116,7 @@ const getAnalytics = async () => {
     const date = new Date();
     date.setDate(date.getDate() - i);
     date.setHours(0, 0, 0, 0);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = date.toISOString().split("T")[0];
 
     // Format date for display (e.g., "Jan 15")
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -125,7 +125,7 @@ const getAnalytics = async () => {
     chartData.push({
       date: dateStr,
       displayDate: displayDate,
-      enrollments: enrollmentData[dateStr] || 0
+      enrollments: enrollmentData[dateStr] || 0,
     });
   }
 
@@ -140,32 +140,32 @@ const getAnalytics = async () => {
     {
       $group: {
         _id: "$course",
-        count: { $sum: 1 }
-      }
+        count: { $sum: 1 },
+      },
     },
     {
-      $sort: { count: -1 }
+      $sort: { count: -1 },
     },
     {
-      $limit: 5
+      $limit: 5,
     },
     {
       $lookup: {
         from: "courses",
         localField: "_id",
         foreignField: "_id",
-        as: "courseInfo"
-      }
+        as: "courseInfo",
+      },
     },
     {
-      $unwind: "$courseInfo"
+      $unwind: "$courseInfo",
     },
     {
       $project: {
         courseName: "$courseInfo.title",
-        enrollments: "$count"
-      }
-    }
+        enrollments: "$count",
+      },
+    },
   ]);
 
   return {
@@ -176,8 +176,8 @@ const getAnalytics = async () => {
       totalCourses,
       totalStudents,
       totalInstructors,
-      enrollmentsLast30Days: enrollments.length
-    }
+      enrollmentsLast30Days: enrollments.length,
+    },
   };
 };
 
